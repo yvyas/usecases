@@ -3,7 +3,7 @@ aws lambda add-permission \
   --statement-id BedrockAgentInvoke \
   --action lambda:InvokeFunction \
   --principal bedrock.amazonaws.com \
-  --source-arn arn:aws:bedrock:<region>:<account-id>:agent/*
+  --source-arn arn:aws:bedrock:<region>:<account-id>:agent/* 
 
 
 openapi: 3.0.0
