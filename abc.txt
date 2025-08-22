@@ -1,0 +1,187 @@
+Step-by-Step: Amazon Bedrock Agent with S3 KB + Lambda Action
+1. Create the Knowledge Base (S3 data source of transaction data)
+
+Prepare your S3 Bucket
+
+Upload transactions.csv into an S3 bucket in the same AWS Region you’ll use for Amazon Bedrock.
+
+Note the bucket URI and ARN.
+
+Ensure your Bedrock service role (IAM Role) has permissions to access the bucket.
+AWS Documentation
++5
+Pragnakalp Techlabs
++5
+Repost
++5
+AWS Documentation
++4
+AWS Documentation
++4
+Medium
++4
+AWS Documentation
++1
+
+In the AWS Console — Amazon Bedrock → Knowledge Bases → “Create Knowledge Base”
+
+Provide a name and description.
+
+For IAM Role, either auto-create or supply a custom role with S3 access (read, list), embedding, and any KMS key decryption if you’ve encrypted the bucket.
+AWS Documentation
++6
+AWS Documentation
++6
+Pragnakalp Techlabs
++6
+AWS Documentation
+
+Select Amazon S3 as the data source.
+
+Enter your bucket details (URI, encryption options, prefix if needed).
+
+Optionally configure chunking (e.g., fixed-size tokens, overlapping) and metadata filters.
+Pragnakalp Techlabs
++10
+AWS Documentation
++10
+AWS Documentation
++10
+
+Choose an embeddings model (e.g., Amazon Titan Text Embeddings) and a vector store (OpenSearch Serverless, Aurora PostgreSQL Serverless, or S3 Vectors if available).
+AWS Documentation
++2
+AWS Documentation
++2
+
+Review and Create Knowledge Base.
+
+Once ready (status: Ready), sync the data source to ingest the transactions.csv content into the KB.
+Repost
++9
+AWS Documentation
++9
+Pragnakalp Techlabs
++9
+
+2. Create the Agent in Amazon Bedrock
+
+Navigate to Amazon Bedrock → Agents (under Builder Tools) → “Create Agent”
+
+Provide a name, introduction (e.g., “Financial Planning Agent for vacation goal”), and choose a foundation model.
+
+Click Save, then note the Agent ID, ARN, and create an alias to get the Agent Alias ID.
+AWS Documentation
++9
+Pragnakalp Techlabs
++9
+AWS Documentation
++9
+
+Add the Knowledge Base to the Agent
+
+In the Agent details, go to Knowledge Bases → Add, select the KB you created.
+
+Provide context or instructions like, “Use recent transaction history to recommend short‑term savings strategies.” Click Prepare to test the integration.
+AWS Documentation
++4
+AWS Documentation
++4
+Medium
++4
+Pragnakalp Techlabs
++1
+
+3. Create a Lambda Function for Custom Financial Actions
+
+Lambda Console → Create Function
+
+Choose Author from scratch, name it (e.g., VacationSavingsAdvisor), pick Python 3.x runtime, and let AWS generate execution role with basic permissions.
+AWS Documentation
++5
+AWS Documentation
++5
+Pragnakalp Techlabs
++5
+
+Configure Invocation Permissions
+
+Under the function's Permissions tab → Add resource-based policy:
+
+Principal: bedrock.amazonaws.com
+
+Action: lambda:InvokeFunction
+
+Source ARN: format: arn:aws:bedrock:<region>:<account-id>:agent/*
+Medium
++11
+AWS Documentation
++11
+AWS Documentation
++11
+
+Implement the Lambda logic
+
+Example (in Python) to parse transactions.csv from S3, compute e.g. recent saved amounts or vacation-specific savings advice, and return a structured response for the agent:
+
+import json, boto3, csv
+def lambda_handler(event, context):
+    # Example: read S3, parse transactions
+    s3 = boto3.client('s3')
+    resp = s3.get_object(Bucket='your-bucket', Key='transactions.csv')
+    lines = resp['Body'].read().decode().splitlines()
+    reader = csv.DictReader(lines)
+    total_spent = sum(float(r['amount']) for r in reader)
+    advice = f"You’ve spent ${total_spent:.2f} recently. To meet your vacation goal faster, aim to save $50–$75/week."
+    return {
+      "messageVersion": "1.0",
+      "response": {
+        "actionGroup": event.get("actionGroup"),
+        "function": event.get("function"),
+        "functionResponse": {
+          "responseBody": {
+            "TEXT": {"body": advice}
+          }
+        }
+      },
+      "sessionAttributes": event.get("sessionAttributes", {}),
+      "promptSessionAttributes": event.get("promptSessionAttributes", {})
+    }
+
+
+This matches the “function details” response schema expected by Bedrock.
+Repost
++7
+AWS Documentation
++7
+Pragnakalp Techlabs
++7
+AWS Documentation
+
+4. Integrate Lambda Action into the Agent
+
+Back in Agent Builder → Add Action Group
+
+Define a function-based action that points to your Lambda (include ARN, function name, input parameters if any).
+
+Bedrock will send structured input (session, user intent, etc.) to Lambda, and expect a structured response per the documented schema.
+AWS Documentation
++1
+
+Test the Agent Behavior
+
+Ask questions like:
+
+“How much can I save weekly to hit $1,000 vacation goal by December?”
+
+“What’s my average spend this month?”
+
+The agent will retrieve relevant data from the knowledge base and invoke your Lambda when needed (e.g., providing personalized advice).
+
+Recap: Workflow Overview
+Step	Component	Purpose
+1	S3 transaction data	Source of user financial data (transactions.csv)
+2	Knowledge Base	Embedding & vector storage for query retrieval
+3	Bedrock Agent	Uses model to interpret intent, consult KB and decide actions
+4	Lambda Function	Executes custom financial logic (read S3, compute advice)
+5	Agent Action Group	Orchestrates call to Lambda and returns results to the user
