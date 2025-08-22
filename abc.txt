@@ -1,3 +1,19 @@
+
+
+openapi: 3.0.0
+info:
+  title: Financial Advisor
+  version: 1.0.0
+paths:
+  /vacationPlan:
+    post:
+      summary: Calculate savings plan for vacation
+      operationId: GetVacationPlan
+      responses:
+        "200":
+          description: OK
+
+
 Step-by-Step: Amazon Bedrock Agent with S3 KB + Lambda Action
 1. Create the Knowledge Base (S3 data source of transaction data)
 
