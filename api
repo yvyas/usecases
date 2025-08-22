@@ -1,0 +1,48 @@
+openapi: 3.0.1
+info:
+  title: Retail Banking Goal Planner
+  version: 1.0.0
+paths:
+  /planGoal:
+    post:
+      operationId: planGoal
+      description: Compute a savings plan from recent transactions to reach a short-term vacation goal.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetAmount, targetDate]
+              properties:
+                targetAmount:
+                  type: number
+                  description: Total amount to save (e.g., 1500.00)
+                targetDate:
+                  type: string
+                  format: date
+                  description: Goal date (YYYY-MM-DD)
+                lookbackMonths:
+                  type: integer
+                  default: 3
+                  description: How many months of transactions to analyze
+                accountId:
+                  type: string
+                  description: Optional account identifier
+      responses:
+        "200":
+          description: Savings plan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  monthlySavings:
+                    type: number
+                  weeksToGoal:
+                    type: integer
+                  suggestedCuts:
+                    type: array
+                    items: { type: string }
+                  summary:
+                    type: string
